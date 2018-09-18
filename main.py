@@ -4,6 +4,29 @@ app = Flask(__name__)
 
 app.config['DEBUG'] = True      # displays runtime errors in the browser, too
 
+
+def generate_movie_list(movies):
+    movie_content ="<ul>"
+
+    list_item = "<li>{0}</li>"
+
+    for movie in movies:
+        movie_content += list_item.format(movie)
+    
+    movie_content += "</ul>"
+
+    return movie_content
+
+def generate_select_list(movies):
+    options = ""
+
+    for movie in movies:
+        options += "<option value='{0}'>{0}</option>".format(movie)
+    
+    return options
+
+movie_list = []
+
 page_header = """
 <!DOCTYPE html>
 <html>
@@ -30,22 +53,23 @@ add_form = """
         <input type="submit" value="Add It"/>
     </form>
 """
-movie_list = []
+
 # TODO:
 # Create the HTML for the form below so the user can check off a movie from their list 
 # when they've watched it.
 # Name the action for the form '/crossoff' and make its method 'post'.
 
+# TODO:
+# modify the crossoff_form above to use a dropdown (<select>) instead of
+# an input text field (<input type="text"/>)
+
 # a form for crossing off watched movies
 crossoff_form = """
     <form action="/crossoff" method="post">
-        <label for="viewed-movie">
-            I want to cross off
-            <select name="cars">
-                <option value="clueless">Clueless</option>
-                <option value="firefly">Firefly</option>
-                <option value="equilibrium">Fiat</option>
-                <option value="ipman">Ip Man</option>
+        <label for="crossed-off-movie">
+            Cross off
+            <select id="crossed-off-movie" name="crossed-off-movie">
+                {0}
             </select>
             from my watchlist.
         </label>
@@ -58,52 +82,52 @@ crossoff_form = """
 # "Star Wars has been crossed off your watchlist".
 # And create a route above the function definition to receive and handle the request from 
 # your crossoff_form.
+@app.route("/crossoff", methods=['POST'])
 def crossoff_movie():
     crossed_off_movie = request.form['crossed-off-movie']    
 
-# TODO:
-# modify the crossoff_form above to use a dropdown (<select>) instead of
-# an input text field (<input type="text"/>)
+    index = movie_list.index(crossed_off_movie)
+
+    del movie_list[index]
+
+    crossed_movie_element = "<strike>" + crossed_off_movie + "<strike>"
+    sentence = crossed_movie_element + " has been crossed off your Watchlist!"
+    link = """
+        <p>
+            <a href="/">back to index</a>
+        </p>
+    """
+    content = page_header + "<p>" + sentence + "</p>" + link + page_footer
+
+    return content
 
 @app.route("/add", methods=['POST'])
 def add_movie():
     new_movie = request.form['new-movie']
+
     movie_list.append(new_movie)
+
     # build response content
     new_movie_element = "<strong>" + new_movie + "</strong>"
     sentence = new_movie_element + " has been added to your Watchlist!"
-    content = page_header + "<p>" + sentence + "</p>" + page_footer
+    link = """
+        <p>
+            <a href="/">back to index</a>
+        </p>
+    """
+    content = page_header + "<p>" + sentence + "</p>" + link + page_footer
 
     return content
 
-@app.route("/crossoff", methods=['POST'])
-def remove_movie():
-    viewed_movie = request.form['viewed-movie']
-    movie_list.remove(viewed_movie)
-    # build response content
-    viewed_movie_element = "<strike>" + viewed_movie + "</strike>"
-    sentence = viewed_movie_element + " has been removed to your Watchlist!"
-    content = page_header + "<p>" + sentence + "</p>" + page_footer
-
-    return content
 
 @app.route("/")
 def index():
     edit_header = "<h2>Edit My Watchlist</h2>"
 
+    movie_content = generate_movie_list(movie_list)
+
     # build the response string
-    # accumulator
-    movie_content = """<ul>"""
-    # loop through list
-    temp = "<li>{0}</li>"
-    # other way
-    #temp = """<li> """ + movie + """</li>"""
-    for movie in movie_list:
-        # combine <li> and movie 
-        movie_content += temp.format(movie)
-    # make html fragment for list
-    movie_content += "</ul>"
-    content = page_header + movie_content + edit_header + add_form + crossoff_form + page_footer
+    content = page_header + movie_content + edit_header + add_form + crossoff_form.format(generate_select_list(movie_list)) + page_footer
 
     return content
 
